@@ -2,8 +2,7 @@ const net = require('net');
 const { broadcast } = require('./utils');
 const { Vector3, Quaternion } = require('./UnityClasses');
 const { MessageType } = require('./enums');
-
-const sockets = [];
+const { addSocket, removeSocket } = require('./socket');
 
 /**
  * Parse Unity Transform
@@ -14,14 +13,24 @@ function parseTransform(data) {
     const offset = 1;
     const floatSize = 4;
 
-    for(let i = offset; i < data.length; i++) {
+    const posX = data.readFloatLE(offset + (floatSize * 0));
+    const posY = data.readFloatLE(offset + (floatSize * 1));
+    const posZ = data.readFloatLE(offset + (floatSize * 2));
+    const position = new Vector3(posX, posY, posZ);
 
-    }
+    const rotX = data.readFloatLE(offset + (floatSize * 3));
+    const rotY = data.readFloatLE(offset + (floatSize * 4));
+    const rotZ = data.readFloatLE(offset + (floatSize * 5));
+    const rotW = data.readFloatLE(offset + (floatSize * 6));
+    const rotation = new Quaternion(rotX, rotY, rotZ, rotW);
+
+    console.log(position);
+    console.log(rotation);
 }
 
 const server = net.createServer(function(socket) {
     socket.name = socket.remoteAddress + ":" + socket.remotePort;
-    sockets.push(socket);
+    addSocket(socket);
 
     socket.write(`Welcome, ${socket.name}!\n`);
     broadcast(`${socket.name} joined the server.\n`, socket);
@@ -41,8 +50,8 @@ const server = net.createServer(function(socket) {
     });
 
     socket.on('end', function() {
-        sockets.splice(sockets.indexOf(socket), 1);
         broadcast(`${socket.name} left the server.\n`);
+        removeSocket(socket);
     });
 
     socket.on('error', function(err) {
