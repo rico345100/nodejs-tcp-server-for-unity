@@ -3,6 +3,7 @@ const { broadcast } = require('./utils');
 const { Vector3, Quaternion } = require('./UnityClasses');
 const { MessageType } = require('./enums');
 const { addSocket, removeSocket } = require('./socket');
+const { ByteReader } = require('./NetworkUtil');
 
 /**
  * Parse Unity Transform
@@ -10,20 +11,9 @@ const { addSocket, removeSocket } = require('./socket');
  */
 function parseTransform(data) {
     // Each values are float type which takes 4 bytes each.
-    const offset = 1;
-    const floatSize = 4;
-
-    const posX = data.readFloatLE(offset + (floatSize * 0));
-    const posY = data.readFloatLE(offset + (floatSize * 1));
-    const posZ = data.readFloatLE(offset + (floatSize * 2));
-    const position = new Vector3(posX, posY, posZ);
-
-    const rotX = data.readFloatLE(offset + (floatSize * 3));
-    const rotY = data.readFloatLE(offset + (floatSize * 4));
-    const rotZ = data.readFloatLE(offset + (floatSize * 5));
-    const rotW = data.readFloatLE(offset + (floatSize * 6));
-    const rotation = new Quaternion(rotX, rotY, rotZ, rotW);
-
+    const byteReader = new ByteReader(data, 1);
+    const position = byteReader.readVector3();
+    const rotation = byteReader.readQuaternion();
     console.log(position);
     console.log(rotation);
 }
