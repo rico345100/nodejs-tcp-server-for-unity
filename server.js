@@ -5,6 +5,8 @@ const { MessageType } = require('./enums');
 const { addSocket, removeSocket } = require('./socket');
 const { ByteReader } = require('./NetworkUtil');
 
+let socketCounter = 0;    // This value will use for distinguish client for each transmission
+
 /**
  * Parse Unity Transform
  * @param {Buffer[]} data 
@@ -12,8 +14,10 @@ const { ByteReader } = require('./NetworkUtil');
 function parseTransform(data) {
     // Each values are float type which takes 4 bytes each.
     const byteReader = new ByteReader(data, 1);
+    const id = byteReader.readInt();
     const position = byteReader.readVector3();
     const rotation = byteReader.readQuaternion();
+    console.log('Client ID: ' + id);
     console.log(position);
     console.log(rotation);
 }
@@ -22,8 +26,15 @@ const server = net.createServer(function(socket) {
     socket.name = socket.remoteAddress + ":" + socket.remotePort;
     addSocket(socket);
 
-    socket.write(`Welcome, ${socket.name}!\n`);
-    broadcast(`${socket.name} joined the server.\n`, socket);
+    console.log('New Client Connected: ' + socket.name);
+
+    console.log('Assigned ID: ' + socketCounter);
+
+    const buffer = Buffer.allocUnsafe(4);
+    buffer.writeInt32LE(socketCounter);
+
+    socket.write(buffer);
+    socketCounter++;
 
     socket.on('data', function(data) {
         const messageType = data[0];
