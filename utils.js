@@ -2,7 +2,7 @@ const { getSockets } = require('./socket');
 
 /**
  * Broadcast message to all clients except sender
- * @param {string} message 
+ * @param {string|Buffer} message 
  * @param {net.Socket} senderSocket 
  */
 function broadcast(message, senderSocket) {

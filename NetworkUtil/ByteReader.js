@@ -12,14 +12,6 @@ class ByteReader extends Cursor {
         return value;
     }
 
-    readFloat() {
-        
-    }
-
-    readVector2() {
-
-    }
-
     readVector3() {
         const x = this.dataSource.readFloatLE(this.cursor + (floatSize * 0));
         const y = this.dataSource.readFloatLE(this.cursor + (floatSize * 1));
@@ -37,14 +29,6 @@ class ByteReader extends Cursor {
         this.cursor += floatSize * 4;
         
         return new Quaternion(x, y, z, w);
-    }
-
-    readBytes() {
-
-    }
-
-    readByte() {
-
     }
 }
 

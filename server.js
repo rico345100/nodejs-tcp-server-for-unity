@@ -48,6 +48,8 @@ const server = net.createServer(function(socket) {
                 console.log('Invalid Message Type!');
                 return;
         }
+
+        broadcast(data, socket);
     });
 
     socket.on('end', function() {
