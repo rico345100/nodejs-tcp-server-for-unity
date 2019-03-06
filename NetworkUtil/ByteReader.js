@@ -30,6 +30,13 @@ class ByteReader extends Cursor {
         
         return new Quaternion(x, y, z, w);
     }
+
+    readByte() {
+        const value = this.dataSource[this.cursor];
+        this.cursor++;
+
+        return value;
+    }
 }
 
 module.exports = ByteReader;

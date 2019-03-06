@@ -37,7 +37,15 @@ const server = net.createServer(function(socket) {
     socketCounter++;
 
     socket.on('data', function(data) {
-        const messageType = data[0];
+        const byteReader = new ByteReader(data);
+        const messageType = byteReader.readByte();
+        const clientID = byteReader.readInt();
+        const objectID = byteReader.readInt();
+
+        console.log('Receive Message');
+        console.log('MessageType: ' + messageType);
+        console.log('ClientID: ' + clientID);
+        console.log('ObjectID: ' + objectID);
 
         switch(messageType) {
             case MessageType.SyncTransform:
