@@ -1,9 +1,10 @@
 const net = require('net');
-const { broadcast } = require('./utils');
+const SocketManager = require('./SocketManager');
+const NetworkObjectManager = require('./NetworkObjectManager');
 const { Vector3, Quaternion } = require('./UnityClasses');
-const MessageType = require('./MessageType');
-const { addSocket, removeSocket } = require('./socket');
 const { ByteReader } = require('./NetworkUtil');
+const { broadcast } = require('./utils/socket');
+const MessageType = require('./enums/MesssageType');
 
 let socketCounter = 0;    // This value will use for distinguish client for each transmission
 
@@ -24,17 +25,16 @@ function parseTransform(data) {
 
 const server = net.createServer(function(socket) {
     socket.name = socket.remoteAddress + ":" + socket.remotePort;
-    addSocket(socket);
-
+    socket.clientID = socketCounter++;
+    SocketManager.addSocket(socket);
     console.log('New Client Connected: ' + socket.name);
+    console.log('Assigned ID: ' + socket.clientID);
 
-    console.log('Assigned ID: ' + socketCounter);
-
+    // Send Client ID to client
     const buffer = Buffer.allocUnsafe(4);
-    buffer.writeInt32LE(socketCounter);
+    buffer.writeInt32LE(socket.clientID);
 
     socket.write(buffer);
-    socketCounter++;
 
     socket.on('data', function(data) {
         const byteReader = new ByteReader(data);
@@ -62,8 +62,9 @@ const server = net.createServer(function(socket) {
     });
 
     socket.on('end', function() {
-        broadcast(`${socket.name} left the server.\n`);
-        removeSocket(socket);
+        console.log(`Client ${socket.clientID} Left.`);
+        broadcast(`${socket.name} left the server.\n`, socket);
+        SocketManager.removeSocket(socket);
     });
 
     socket.on('error', function(err) {

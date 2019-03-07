@@ -1,4 +1,4 @@
-const { getSockets } = require('./socket');
+const SocketManager = require('../SocketManager');
 
 /**
  * Broadcast message to all clients except sender
@@ -6,7 +6,7 @@ const { getSockets } = require('./socket');
  * @param {net.Socket} senderSocket 
  */
 function broadcast(message, senderSocket) {
-    const sockets = getSockets();
+    const sockets = SocketManager.getSockets();
 
     sockets.forEach(function(socket) {
         if(socket == senderSocket) return;
