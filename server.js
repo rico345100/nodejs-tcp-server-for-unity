@@ -1,7 +1,7 @@
 const net = require('net');
 const { broadcast } = require('./utils');
 const { Vector3, Quaternion } = require('./UnityClasses');
-const { MessageType } = require('./enums');
+const MessageType = require('./MessageType');
 const { addSocket, removeSocket } = require('./socket');
 const { ByteReader } = require('./NetworkUtil');
 
@@ -47,6 +47,7 @@ const server = net.createServer(function(socket) {
         console.log('ClientID: ' + clientID);
         console.log('ObjectID: ' + objectID);
 
+        // Dispatch Message
         switch(messageType) {
             case MessageType.SyncTransform:
                 console.log('Message Type: Sync Transform');

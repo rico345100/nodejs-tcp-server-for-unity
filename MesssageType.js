@@ -3,6 +3,4 @@ const MessageType = {
     SyncTransform: 1
 };
 
-module.exports = {
-    MessageType
-};
+module.exports = MessageType;
