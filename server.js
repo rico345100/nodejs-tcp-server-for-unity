@@ -2,23 +2,53 @@ const net = require('net');
 const SocketManager = require('./SocketManager');
 const NetworkObjectManager = require('./NetworkObjectManager');
 const { Vector3, Quaternion } = require('./UnityClasses');
-const { ByteReader } = require('./NetworkUtil');
+const UnityInstance = require('./UnityInstance');
+const { ByteReader } = require('./Network');
 const { broadcast } = require('./utils/socket');
 const MessageType = require('./enums/MesssageType');
+const InstantiateType = require('./enums/InstantiateType');
 
 let socketCounter = 0;    // This value will use for distinguish client for each transmission
+
+/**
+ * Parse Instantiate
+ * @param {Buffer[]} data 
+ */
+function parseInstantiate(data) {
+    const byteReader = new ByteReader(data);
+    const messageType = byteReader.readByte();
+    const clientID = byteReader.readInt();
+
+    const localID = byteReader.readInt();
+    const instantiateType = byteReader.readByte();
+    const position = byteReader.readVector3();
+    const rotation = byteReader.readQuaternion();
+    
+    if(instantiateType == InstantiateType.Player) {
+        console.log('Instantiating Player...');
+    }
+
+    const instance = new UnityInstance(instantiateType, clientID, localID, position, rotation);
+    console.log('Saving Instance...');
+    console.log(instance);
+
+    NetworkObjectManager.addObject(instance);
+}
 
 /**
  * Parse Unity Transform
  * @param {Buffer[]} data 
  */
 function parseTransform(data) {
-    // Each values are float type which takes 4 bytes each.
-    const byteReader = new ByteReader(data, 1);
-    const id = byteReader.readInt();
+    const byteReader = new ByteReader(data);
+    const messageType = byteReader.readByte();
+    const clientID = byteReader.readInt();
+    
+    const localID = byteReader.readInt();
     const position = byteReader.readVector3();
     const rotation = byteReader.readQuaternion();
-    console.log('Client ID: ' + id);
+    console.log('Client ID: ' + clientID);
+    console.log('Local ID: ' + localID);
     console.log(position);
     console.log(rotation);
 }
@@ -40,15 +70,16 @@ const server = net.createServer(function(socket) {
         const byteReader = new ByteReader(data);
         const messageType = byteReader.readByte();
         const clientID = byteReader.readInt();
-        const objectID = byteReader.readInt();
-
+        
         console.log('Receive Message');
         console.log('MessageType: ' + messageType);
         console.log('ClientID: ' + clientID);
-        console.log('ObjectID: ' + objectID);
 
         // Dispatch Message
         switch(messageType) {
+            case MessageType.Instantiate:
+                console.log('Message Type: Instantiate');
+                parseInstantiate(data);
             case MessageType.SyncTransform:
                 console.log('Message Type: Sync Transform');
                 parseTransform(data);
