@@ -1,8 +1,6 @@
 const Cursor = require('./Cursor');
 const { Vector3, Quaternion } = require('../UnityClasses');
-
-const floatSize = 4;
-const intSize = 4;
+const { floatSize, intSize } = require('../typeSize');
 
 class ByteReader extends Cursor {
     readInt() {

@@ -3,13 +3,65 @@ const SocketManager = require('./SocketManager');
 const NetworkObjectManager = require('./NetworkObjectManager');
 const { Vector3, Quaternion } = require('./UnityClasses');
 const UnityInstance = require('./UnityInstance');
-const { ByteReader } = require('./Network');
+const { ByteReader, ByteWriter } = require('./Network');
 const { broadcast } = require('./utils/socket');
 const MessageType = require('./enums/MesssageType');
 const InstantiateType = require('./enums/InstantiateType');
+const { byteSize, intSize, floatSize, vector3Size, quaternionSize } = require('./typeSize');
 
 let socketCounter = 0;    // This value will use for distinguish client for each transmission
 
+/**
+ * Send ClientID to client
+ * @param {net.Socket} socket
+ */
+function sendClientID(socket) {
+    const buffer = Buffer.allocUnsafe(byteSize + intSize);
+    const byteWriter = new ByteWriter(buffer);
+    byteWriter.writeByte(MessageType.AssignID);
+    byteWriter.writeInt(socket.clientID);
+    
+    socket.write(buffer);
+}
+
+/**
+ * Synchronize Network objects 
+ * @param {net.Socket} socket 
+ */
+function synchronizeNetworkObjects(socket) {
+    const networkObjects = NetworkObjectManager.getObjects();
+    const totalCount = networkObjects.length;
+    let sendingBytes;
+
+    if(socket.syncCount >= totalCount) {
+        sendingBytes = Buffer.allocUnsafe(byteSize);
+        sendingBytes[0] = MessageType.ServerRequestObjectSyncComplete;
+        console.log('Nothing to Sync. Complete Instantiation...');
+    } else {
+        const uInstance = networkObjects[socket.syncCount];
+
+        // Skip own objects
+        if(uInstance.clientID == socket.clientID) {
+            socket.syncCount++;
+            return synchronizeNetworkObjects(socket);
+        }
+
+        sendingBytes = Buffer.allocUnsafe((byteSize * 2) + (intSize * 2) + vector3Size + quaternionSize);
+
+        const byteWriter = new ByteWriter(sendingBytes);
+        byteWriter.writeByte(MessageType.ServerRequestObjectSync);
+        byteWriter.writeByte(uInstance.instanceType);
+        byteWriter.writeInt(uInstance.clientID);
+        byteWriter.writeInt(uInstance.localID);
+        byteWriter.writeVector3(uInstance.position);
+        byteWriter.writeQuaternion(uInstance.rotation);
+
+        socket.syncCount++;
+        console.log(`Send Request to Instantiate Object ${socket.syncCount} / ${totalCount}`);
+    }
+
+    socket.write(sendingBytes);
+}
 /**
  * Parse Instantiate
  * @param {Buffer[]} data 
@@ -56,15 +108,14 @@ function parseTransform(data) {
 const server = net.createServer(function(socket) {
     socket.name = socket.remoteAddress + ":" + socket.remotePort;
     socket.clientID = socketCounter++;
+    socket.syncCount = 0;   // Check for Sync Network Object Instantiation
+
     SocketManager.addSocket(socket);
     console.log('New Client Connected: ' + socket.name);
     console.log('Assigned ID: ' + socket.clientID);
 
     // Send Client ID to client
-    const buffer = Buffer.allocUnsafe(4);
-    buffer.writeInt32LE(socket.clientID);
-
-    socket.write(buffer);
+    sendClientID(socket);
 
     socket.on('data', function(data) {
         const byteReader = new ByteReader(data);
@@ -77,9 +128,14 @@ const server = net.createServer(function(socket) {
 
         // Dispatch Message
         switch(messageType) {
+            case MessageType.ClientRequestObjectSync:
+                console.log('Message Type: Client Request Object Sync');
+                synchronizeNetworkObjects(socket);
+                break;
             case MessageType.Instantiate:
                 console.log('Message Type: Instantiate');
                 parseInstantiate(data);
+                break;
             case MessageType.SyncTransform:
                 console.log('Message Type: Sync Transform');
                 parseTransform(data);
