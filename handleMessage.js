@@ -2,9 +2,10 @@ const NetworkObjectManager = require('./NetworkObjectManager');
 const { Vector3, Quaternion } = require('./UnityClasses');
 const UnityInstance = require('./UnityInstance');
 const { ByteReader, ByteWriter } = require('./Network');
-const MessageType = require('./enums/MesssageType');
+const MessageType = require('./enums/MessageType');
 const InstantiateType = require('./enums/InstantiateType');
 const { byteSize, intSize, floatSize, vector3Size, quaternionSize } = require('./typeSize');
+const { broadcast } = require('./utils/socket');
 
 /**
  * Send ClientID to client
@@ -59,10 +60,28 @@ function synchronizeNetworkObjects(socket) {
 }
 
 /**
+ * Destroy all NetworkObject belongs to specified socket
+ * @param {net.Socket} socket 
+ */
+function destroyNetworkObjects(socket) {
+    const { clientID } = socket;
+    const buffer = Buffer.allocUnsafe(byteSize + intSize);
+    const byteWriter = new ByteWriter(buffer);
+    byteWriter.writeByte(MessageType.DestroyNetworkObjects);
+    byteWriter.writeInt(clientID);
+
+    broadcast(buffer, socket);
+
+    // Remove from Server
+    NetworkObjectManager.removeObjectByClientID(socket.clientID);
+}
+
+/**
  * Parse Instantiate
+ * @param {net.Socket} socket
  * @param {Buffer[]} data 
  */
-function parseInstantiate(data) {
+function parseInstantiate(socket, data) {
     const byteReader = new ByteReader(data);
     const messageType = byteReader.readByte();
     const clientID = byteReader.readInt();
@@ -81,21 +100,24 @@ function parseInstantiate(data) {
     console.log(instance);
 
     NetworkObjectManager.addObject(instance);
+    broadcast(data, socket);
 }
 
 /**
  * Parse Destroy
+ * @param {net.Socket} socket 
  * @param {Buffer[]} data 
  */
-function parseDestroy(data) {
+function parseDestroy(socket, data) {
     
 }
 
 /**
  * Parse Unity Transform
+ * @param {net.Socket} socket 
  * @param {Buffer[]} data 
  */
-function parseTransform(data) {
+function parseTransform(socket, data) {
     const byteReader = new ByteReader(data);
     const messageType = byteReader.readByte();
     const clientID = byteReader.readInt();
@@ -112,6 +134,7 @@ function parseTransform(data) {
 module.exports = {
     sendClientID,
     synchronizeNetworkObjects,
+    destroyNetworkObjects,
     parseInstantiate,
     parseDestroy,
     parseTransform

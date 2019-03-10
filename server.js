@@ -2,10 +2,11 @@ const net = require('net');
 const SocketManager = require('./SocketManager');
 const { ByteReader } = require('./Network');
 const { broadcast } = require('./utils/socket');
-const MessageType = require('./enums/MesssageType');
+const MessageType = require('./enums/MessageType');
 const {
     sendClientID,
     synchronizeNetworkObjects,
+    destroyNetworkObjects,
     parseInstantiate,
     parseDestroy,
     parseTransform
@@ -30,44 +31,40 @@ const server = net.createServer(function(socket) {
         const messageType = byteReader.readByte();
         const clientID = byteReader.readInt();
         
-        console.log('Receive Message');
-        console.log('MessageType: ' + messageType);
-        console.log('ClientID: ' + clientID);
+        console.log(`Receive Message\nMessageType: ${messageType}\nClientID: ${clientID}`);
 
         // Dispatch Message
         switch(messageType) {
             case MessageType.ClientRequestObjectSync:
-                console.log('Message Type: Client Request Object Sync');
                 synchronizeNetworkObjects(socket);
                 break;
             case MessageType.Instantiate:
-                console.log('Message Type: Instantiate');
-                parseInstantiate(data);
+                parseInstantiate(socket, data);
                 break;
             case MessageType.Destroy:
-                console.log('Message Type: Destroy');
-                parseDestroy(data);
+                parseDestroy(socket, data);
                 break;
             case MessageType.SyncTransform:
-                console.log('Message Type: Sync Transform');
-                parseTransform(data);
+                parseTransform(socket, data);
                 break;
             default:
                 console.log('Invalid Message Type!');
                 return;
         }
-
-        broadcast(data, socket);
     });
 
     socket.on('end', function() {
         console.log(`Client ${socket.clientID} Left.`);
-        broadcast(`${socket.name} left the server.\n`, socket);
+        destroyNetworkObjects(socket);
         SocketManager.removeSocket(socket);
     });
 
     socket.on('error', function(err) {
         console.log('Error', err);
+
+        if(err.code === 'ECONNRESET') {
+            socket.emit('end');
+        }
     });
 });
 
