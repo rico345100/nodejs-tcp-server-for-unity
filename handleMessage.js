@@ -46,9 +46,9 @@ function synchronizeNetworkObjects(socket) {
 
         const byteWriter = new ByteWriter(sendingBytes);
         byteWriter.writeByte(MessageType.ServerRequestObjectSync);
-        byteWriter.writeByte(uInstance.instanceType);
         byteWriter.writeInt(uInstance.clientID);
         byteWriter.writeInt(uInstance.localID);
+        byteWriter.writeByte(uInstance.instanceType);
         byteWriter.writeVector3(uInstance.position);
         byteWriter.writeQuaternion(uInstance.rotation);
 
