@@ -8,8 +8,7 @@ const {
     synchronizeNetworkObjects,
     destroyNetworkObjects,
     parseInstantiate,
-    parseDestroy,
-    parseTransform
+    parseSyncTransform
 } = require('./handleMessage');
 
 let socketCounter = 0;    // This value will use for distinguish client for each transmission
@@ -41,11 +40,8 @@ const server = net.createServer(function(socket) {
             case MessageType.Instantiate:
                 parseInstantiate(socket, data);
                 break;
-            case MessageType.Destroy:
-                parseDestroy(socket, data);
-                break;
             case MessageType.SyncTransform:
-                parseTransform(socket, data);
+                parseSyncTransform(socket, data);
                 break;
             default:
                 console.log('Invalid Message Type!');
