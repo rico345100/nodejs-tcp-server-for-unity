@@ -30,7 +30,9 @@ const server = net.createServer(function(socket) {
         const messageType = byteReader.readByte();
         const clientID = byteReader.readInt();
         
-        console.log(`Receive Message\nMessageType: ${messageType}\nClientID: ${clientID}`);
+        if(messageType !== MessageType.SyncTransform) {
+            console.log(`Receive Message\nMessageType: ${messageType}\nClientID: ${clientID}`);        
+        }
 
         // Dispatch Message
         switch(messageType) {
